@@ -34,4 +34,4 @@ day_lengths = ["8:52",
                "8:26"]
 
 df = pd.DataFrame({"month": months, "day_length": day_lengths})
-df.to_csv("data/raw/Tageslicht/sonnenlaenge_wien_monatlich.csv", index=False)
+df.to_csv("../../data/raw/Tageslicht/sonnenlaenge_wien_monatlich.csv", index=False)

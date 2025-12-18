@@ -39,7 +39,7 @@ for year in range(2015, 2021):
 df = pd.DataFrame(data)
 print(df)
 
-df.to_csv("data/raw/Feiertage/feiertage_at_2015_2020_raw.csv", index=False)
+df.to_csv("../../data/raw/Feiertage/feiertage_at_2015_2020_raw.csv", index=False)
 
 
 # Verbessern der CSV
@@ -64,7 +64,7 @@ df_clean = df[[
     "holiday_name"
 ]]
 
-df_clean.to_csv("data/raw/Feiertage/feiertage_at_2015_2020_clean.csv", index=False)
+df_clean.to_csv("../../data/raw/Feiertage/feiertage_at_2015_2020_clean.csv", index=False)
 
 print("Neues sauberes CSV wurde erstellt")
 

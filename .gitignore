@@ -1,5 +1,6 @@
 .env
 data
+daten.csv
 .venv
 .idea
 *.iml
