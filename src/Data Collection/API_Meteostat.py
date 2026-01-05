@@ -10,6 +10,7 @@ load_dotenv()
 
 # CONFIG
 
+#cities wird nicht verwendet, oder?
 cities = {
     "wien": (48.2082, 16.3738),
     "st_poelten": (48.2049, 15.6256),

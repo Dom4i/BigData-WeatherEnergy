@@ -5,6 +5,9 @@ import pandas as pd
 URL = "https://www.laenderdaten.info/Europa/Oesterreich/sonnenuntergang.php"
 
 #Wir haben es nicht geschafft mit normalem Websracping, aus diesem Grund Manuell (es sind aber eh nur 12 Werte)
+
+#können wir löschen, habe es für die letzten 5 Jahre über astral library importiert
+
 months = [
     "Jänner",
     "Februar",
