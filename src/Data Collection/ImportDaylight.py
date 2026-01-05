@@ -5,6 +5,7 @@ from astral.sun import sun
 import csv
 import json
 import statistics
+from datetime import date
 
 TZ = ZoneInfo("Europe/Vienna") # Zeitzone definieren
 
@@ -52,8 +53,11 @@ def daterange(start: date, end: date):
         cur += timedelta(days=1)
 
 # Letzten 5 Jahre
-end = date.today()
-start = date(end.year - 5, end.month, end.day)
+START_DATE = "2015-01-01"
+END_DATE = "2019-12-31"
+
+start = date.fromisoformat(START_DATE)
+end = date.fromisoformat(END_DATE)
 
 # Ausgabe speichern: pro Tag durchschnittliche Sonnenauf- und Untergrang Zeitpunkte
 # Sekunden seit Mitternacht werden auch gespeichert falls sie im Projekt benötigt werden

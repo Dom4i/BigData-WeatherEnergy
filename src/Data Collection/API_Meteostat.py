@@ -23,6 +23,8 @@ cities = {
     "eisenstadt": (47.8456, 16.5233),
 }
 
+# Die Landeshauptstädte wurden manuell eingegeben, da mit einem API key das Anfragelimit für ganz Österreich überschritten wird
+# Daher statt Loop über alle Bundesländer jedes einzeln gemacht und dazwischen API key geändert
 CITY_NAME = "eisenstadt"
 LAT = 47.8456
 LON = 16.5233
