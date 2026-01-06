@@ -10,7 +10,7 @@ from datetime import date
 TZ = ZoneInfo("Europe/Vienna") # Zeitzone definieren
 
 # Koordinaten der Landeshauptstädte aus JSON laden:
-with open("austria_places_latlon.json", encoding="utf-8") as f:
+with open("../../data/data/util/austria_places_latlon.json", encoding="utf-8") as f:
     PLACES = json.load(f)
 
 # Wandelt einen Zeitpunkt (datetime) in Sekunden seit Mitternacht um:
@@ -61,7 +61,7 @@ end = date.fromisoformat(END_DATE)
 
 # Ausgabe speichern: pro Tag durchschnittliche Sonnenauf- und Untergrang Zeitpunkte
 # Sekunden seit Mitternacht werden auch gespeichert falls sie im Projekt benötigt werden
-out_file = "austria_sunrise_sunset_avg_last5y_daily.csv"
+out_file = "../../data/data/raw/Tageslicht/austria_sunrise_sunset_avg_last5y_daily.csv"
 with open(out_file, "w", newline="", encoding="utf-8") as f:
     w = csv.writer(f)
     w.writerow(["date", "sunrise_avg", "sunset_avg", "sunrise_avg_seconds", "sunset_avg_seconds"])

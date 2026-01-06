@@ -16,3 +16,6 @@ pip install -r requirements.txt
 ```bash
 pip freeze > requirements.txt
 ```
+## Business Info
+Stromverbrauch wird stündlich als Mittelwert gespeichert
+z.B. 17:00 50000 MW verbraucht bedeutet, dass zwischen 17:00 und 18:00 Uhr im Schnitt 5000 MW verbraucht werden

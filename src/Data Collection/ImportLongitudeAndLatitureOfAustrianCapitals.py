@@ -13,7 +13,7 @@ CITIES = [
     "Klagenfurt"
 ]
 
-OUTPUT_FILE = "austria_places_latlon.json"
+OUTPUT_FILE = "../../data/data/util/austria_places_latlon.json"
 
 geolocator = Nominatim(user_agent="austria-daylight-analysis")
 
