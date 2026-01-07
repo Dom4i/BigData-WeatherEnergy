@@ -12,9 +12,7 @@ from pathlib import Path
 import pandas as pd
 
 # %%
-# -----------------------------
 # KONFIGURATION
-# -----------------------------
 RAW_ENERGY_CSV = Path("data/raw/Strom/time_series_60min_singleindex.csv")
 OUT_DIR = Path("data/processed/Strom")
 OUT_DIR.mkdir(parents=True, exist_ok=True)

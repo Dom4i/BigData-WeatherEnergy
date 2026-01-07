@@ -47,7 +47,6 @@ df_daily.to_csv(OUT_DAILY, index=False)
 print("Gespeichert (daily):", OUT_DAILY.resolve(), "| Zeilen:", len(df_daily))
 
 # %%
-# OPTIONAL: Daily -> Hourly aufblasen (für Join mit stündlichen Daten)
 # Wir erstellen pro Tag 24 Stunden-Timestamps und hängen daylight_hours dran.
 hours = pd.date_range(start=f"{START_DATE} 00:00:00", end=f"{END_DATE} 23:00:00", freq="H", tz="UTC")
 df_hourly = pd.DataFrame({"timestamp": hours})
