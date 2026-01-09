@@ -1,0 +1,32 @@
+services:
+  influxdb:
+    image: influxdb:2.7
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: adminadminadmin
+      DOCKER_INFLUXDB_INIT_ORG: bigdata
+      DOCKER_INFLUXDB_INIT_BUCKET: energy_weather
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: supersecrettoken
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - influxdb
+    restart: unless-stopped
+# username: admin
+# password: admin
+volumes:
+  influxdb-data:
+  grafana-data:
