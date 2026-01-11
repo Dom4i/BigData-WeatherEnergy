@@ -34,7 +34,6 @@ keep_cols = [
     "AT_load_actual_entsoe_transparency",
     "AT_solar_generation_actual",
     "AT_wind_onshore_generation_actual",
-    # optional, falls ihr es später doch wollt:
     # "AT_price_day_ahead",
     # "AT_load_forecast_entsoe_transparency",
 ]
