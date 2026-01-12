@@ -10,6 +10,7 @@ from pyspark.ml.regression import GBTRegressor
 from pyspark.ml import Pipeline
 from pyspark.ml.evaluation import RegressionEvaluator
 from pyspark.sql.functions import col, isnan, when, sum as spark_sum
+import numpy as np
 import os
 import sys
 
@@ -192,3 +193,59 @@ imp_nolag = pd.DataFrame({
 
 print("\nFeature Importances (OHNE Lags)")
 print(imp_nolag)
+
+# %%
+# Drittes Modell ohne lag_1, damit man Daten mit den Vorhersagen der Energieanbieter vergleichen kann
+feature_cols_lags_24_168 = [
+    c for c in feature_cols if c not in ("load_lag_1",)
+]
+
+model_lags_24_168, pred_lags_24_168, rmse_lags_24_168, mae_lags_24_168 = train_eval(
+    train, test, feature_cols_lags_24_168
+)
+
+print("\nZusätzliches Modell")
+print(f"MIT Lags (24h & 168h) -> RMSE: {rmse_lags_24_168:.3f} | MAE: {mae_lags_24_168:.3f}")
+
+# %%
+# Daten von Energieanbieter evaluieren: vielleicht doch wieder löschen oder nicht in notebook geben?
+
+CSV_PATH = "data/raw/Strom/time_series_60min_singleindex.csv"
+
+# 1) Forecast laden
+pdf_forecast = pd.read_csv(
+    CSV_PATH,
+    usecols=["utc_timestamp", "AT_load_forecast_entsoe_transparency"]
+).rename(columns={
+    "utc_timestamp": "timestamp",
+    "AT_load_forecast_entsoe_transparency": "entsoe_forecast_mw"
+})
+
+pdf_forecast["timestamp"] = pd.to_datetime(pdf_forecast["timestamp"], utc=True)
+
+# 2) Deine echten load-Daten (Spark -> Pandas), aber nur nötige Spalten & nur 2019
+pdf_load_2019 = (
+    df_clean
+    .select("timestamp", "load_mw")
+    .filter(col("timestamp") >= lit("2019-01-01 00:00:00"))
+    .toPandas()
+)
+
+# sicherstellen, dass timestamp auch UTC-aware ist
+pdf_load_2019["timestamp"] = pd.to_datetime(pdf_load_2019["timestamp"], utc=True)
+
+# 3) Join in Pandas
+pdf_base = pdf_load_2019.merge(pdf_forecast, on="timestamp", how="inner").dropna()
+
+# 4) Metriken
+err = (pdf_base["entsoe_forecast_mw"] - pdf_base["load_mw"]).to_numpy()
+
+baseline_mae = np.mean(np.abs(err))
+baseline_rmse = np.sqrt(np.mean(err**2))
+baseline_rmae = baseline_mae / pdf_base["load_mw"].mean()  # relative MAE
+
+print("\nENTSO-E Forecast Baseline (Test 2019) [Pandas]")
+print(f"Rows used: {len(pdf_base)}")
+print(f"MAE  : {baseline_mae:.3f}")
+print(f"RMSE : {baseline_rmse:.3f}")
+print(f"RMAE : {baseline_rmae:.4f}")

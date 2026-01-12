@@ -10,18 +10,28 @@ from pathlib import Path
 import pandas as pd
 
 # %%
-# KONFIGURATION
-ENERGY_FILE   = Path("data/processed/Strom/energy_hourly_AT_2015_2019_processed.csv")
-WEATHER_FILE  = Path("data/processed/Wetterdata/weather_hourly_AT_2015_2019.csv")
-DAYLIGHT_FILE = Path("data/processed/Tageslicht/daylight_hourly_AT_2015_2019.csv")
-CAL_FILE      = Path("data/processed/Kalender/calendar_hourly_AT_2015_2019.csv")
+# BASISPFAD: relativ zum Script
+BASE_DIR = Path(__file__).resolve().parent
+# Projektroot = zwei Ebenen höher (src/Data Processing -> src -> root)
+PROJECT_ROOT = BASE_DIR.parents[1]
 
-OUT_DIR = Path("data/processed/features")
+# KONFIGURATION
+ENERGY_FILE   = PROJECT_ROOT / "data/processed/Strom/energy_hourly_AT_2015_2019_processed.csv"
+WEATHER_FILE  = PROJECT_ROOT / "data/processed/Wetterdata/weather_temp_hourly_AT_2015_2019_model2.csv"
+DAYLIGHT_FILE = PROJECT_ROOT / "data/processed/Tageslicht/daylight_hourly_AT_2015_2019_model2.csv"
+CAL_FILE      = PROJECT_ROOT / "data/processed/Kalender/calendar_hourly_AT_2015_2019.csv"
+
+OUT_DIR = PROJECT_ROOT / "data/processed/features"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-OUT_CSV     = OUT_DIR / "features_hourly_AT_2015_2019.csv"
-OUT_PARQUET = OUT_DIR / "features_hourly_AT_2015_2019.parquet"  # für spark/ml
+OUT_CSV     = OUT_DIR / "features_hourly_AT_2015_2019_model2.csv"
+OUT_PARQUET = OUT_DIR / "features_hourly_AT_2015_2019_model2.parquet"  # für spark/ml
 
+print("PROJECT_ROOT:", PROJECT_ROOT)
+print("ENERGY_FILE exists:", ENERGY_FILE.exists())
+print("WEATHER_FILE exists:", WEATHER_FILE.exists())
+print("DAYLIGHT_FILE exists:", DAYLIGHT_FILE.exists())
+print("CAL_FILE exists:", CAL_FILE.exists())
 # %%
 # CSV laden + timestamp parsen
 def load_with_timestamp(path: Path, ts_col: str = "timestamp") -> pd.DataFrame:
