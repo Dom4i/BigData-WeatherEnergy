@@ -65,8 +65,10 @@ print(pdf.head(3))
 # Spark hatte Probleme, Python interpreter zu finden. Folgende Systemvariablen sollen helfen:
 os.environ["PYSPARK_PYTHON"] = sys.executable
 os.environ["PYSPARK_DRIVER_PYTHON"] = sys.executable
+os.environ["JAVA_TOOL_OPTIONS"] = "-Dlog4j2.level=ERROR" # keine Warnings ausgeben
 
 spark = SparkSession.builder.appName("InfluxSparkML").getOrCreate() # Spark session
+spark.sparkContext.setLogLevel("ERROR") # keine Warnings ausgeben
 df = spark.createDataFrame(pdf) # Pandas DF in Spark DF umwandeln
 
 
@@ -104,7 +106,7 @@ missing_counts = df_feat.select([
 ])
 missing_counts.show(truncate=False)
 
-# Folgende Spalten haben NaN werte, die Zeilen mit Nan entfernen (sind sehr wenige Zeilen, daher wird es wahrscheinlich keinen Bias verursachen):
+# Folgende Spalten haben NaN Werte, die Zeilen mit Nan entfernen (sind sehr wenige Zeilen, daher wird es wahrscheinlich keinen Bias verursachen):
 df_clean = df_feat.dropna(subset=["pressure_hpa", "solar_mw", "wind_mw"])
 
 # Kontrolle nach dem Cleaning:
@@ -118,8 +120,8 @@ missing_counts_clean.show(truncate=False)
 
 # %%
 # Chek, wie viele Zeilen gelöscht wurden:
-#print("Before:", df_feat.count())
-#print("After :", df_clean.count())
+print("Before:", df_feat.count())
+print("After :", df_clean.count())
 
 # Grundstatistiken der nummerischen Spalten:
 df_clean.select(
@@ -204,6 +206,12 @@ model_lags_24_168, pred_lags_24_168, rmse_lags_24_168, mae_lags_24_168 = train_e
     train, test, feature_cols_lags_24_168
 )
 
+gbt_cols_lags_24_168 = model_lags_24_168.stages[1]
+imp_cols_lags_24_168 = pd.DataFrame({
+    "feature": feature_cols_lags_24_168,
+    "importance": gbt_cols_lags_24_168.featureImportances.toArray()
+}).sort_values("importance", ascending=False)
+
 print("\nZusätzliches Modell")
 print(f"MIT Lags (24h & 168h) -> RMSE: {rmse_lags_24_168:.3f} | MAE: {mae_lags_24_168:.3f}")
 
@@ -249,3 +257,83 @@ print(f"Rows used: {len(pdf_base)}")
 print(f"MAE  : {baseline_mae:.3f}")
 print(f"RMSE : {baseline_rmse:.3f}")
 print(f"RMAE : {baseline_rmae:.4f}")
+
+# %%
+# Plots:
+
+# %%
+import matplotlib.pyplot as plt
+
+def pred_to_pandas(pred_spark, label_col="load_mw", time_col="timestamp", n_max=None):
+    sdf = pred_spark.select(time_col, col(label_col).alias("y"), col("prediction").alias("yhat")).orderBy(time_col)
+    if n_max is not None:
+        sdf = sdf.limit(int(n_max))
+    pdfp = sdf.toPandas()
+    pdfp[time_col] = pd.to_datetime(pdfp[time_col], utc=True)
+    pdfp["residual"] = pdfp["yhat"] - pdfp["y"]
+    return pdfp
+
+def plot_scatter_actual_vs_pred(pdf_pred, title):
+    # scatterplot predicted vs. actual
+    d = pdf_pred.dropna()
+    plt.figure(figsize=(5.5, 5.5))
+    plt.scatter(d["y"], d["yhat"], s=8, alpha=0.35)
+    mn = float(min(d["y"].min(), d["yhat"].min()))
+    mx = float(max(d["y"].max(), d["yhat"].max()))
+    plt.plot([mn, mx], [mn, mx], linestyle="--")
+    plt.title(title)
+    plt.xlabel("Actual (MW)")
+    plt.ylabel("Predicted (MW)")
+    plt.tight_layout()
+    plt.show()
+
+def plot_feature_importance(imp_df, title, top_n=15):
+    # Balkendiagramm mit feature importance
+    d = imp_df.sort_values("importance", ascending=False).head(top_n)
+    plt.figure(figsize=(8, 4.5))
+    plt.barh(d["feature"][::-1], d["importance"][::-1])
+    plt.title(title)
+    plt.xlabel("Importance")
+    plt.tight_layout()
+    plt.show()
+
+def plot_metrics_bar(metrics_rows, title="Model Metrics (Test 2019)"):
+    # Balkendiagramm RMSE und MAE pro Modell
+
+    mdf = pd.DataFrame(metrics_rows)
+    x = np.arange(len(mdf))
+
+    plt.figure(figsize=(8, 4))
+    plt.bar(x - 0.2, mdf["rmse"], width=0.4, label="RMSE")
+    plt.bar(x + 0.2, mdf["mae"],  width=0.4, label="MAE")
+    plt.xticks(x, mdf["model"], rotation=15, ha="right")
+    plt.title(title)
+    plt.ylabel("Error (MW)")
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+# %%
+
+pdf_pred_lags = pred_to_pandas(pred_lags)
+pdf_pred_nolag = pred_to_pandas(pred_nolag)
+pdf_pred_lags_24_168 = pred_to_pandas(pred_lags_24_168)
+
+plot_scatter_actual_vs_pred(pdf_pred_lags, "Scatter: Actual vs Predicted (MIT Lags)")
+plot_scatter_actual_vs_pred(pdf_pred_nolag, "Scatter: Actual vs Predicted (OHNE Lags)")
+plot_scatter_actual_vs_pred(pdf_pred_lags_24_168, "Scatter: Actual vs Predicted (Lags 24h & 168h)")
+
+# %%
+plot_feature_importance(imp_lags, "Feature Importances (MIT Lags) – Top 15", top_n=15)
+plot_feature_importance(imp_nolag, "Feature Importances (OHNE Lags) – Top 15", top_n=15)
+plot_feature_importance(imp_cols_lags_24_168, "Feature Importances (mit 24 und 169 lags, ohne 1) – Top 15", top_n=15)
+
+# %%
+
+# %%
+metrics_rows = [
+    {"model": "GBT lags (1,24,168)", "rmse": rmse_lags, "mae": mae_lags},
+    {"model": "GBT no lags", "rmse": rmse_nolag, "mae": mae_nolag},
+    {"model": "GBT lags (24,168)", "rmse": rmse_lags_24_168, "mae": mae_lags_24_168},
+]
+plot_metrics_bar(metrics_rows, title="Vergleich: RMSE & MAE (Test 2019)")
