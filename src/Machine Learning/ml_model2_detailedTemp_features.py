@@ -18,17 +18,15 @@ from pyspark.ml import Pipeline
 from pyspark.ml.evaluation import RegressionEvaluator
 
 
-# -------------------------
-# 1) Spark Setup
-# -------------------------
+
+# Spark Setup
 os.environ["PYSPARK_PYTHON"] = sys.executable
 os.environ["PYSPARK_DRIVER_PYTHON"] = sys.executable
 
 spark = SparkSession.builder.appName("Model2_DetailedTemps_3Lags").getOrCreate()
 
-# -------------------------
-# 2) Parquet laden (RELATIV, via Pandas wegen TIMESTAMP(NANOS,true))
-# -------------------------
+
+# Parquet laden (RELATIV, via Pandas wegen TIMESTAMP(NANOS,true))
 PARQUET_PATH = "../../data/processed/features/features_hourly_AT_2015_2019_model2.parquet"
 
 pdf = pd.read_parquet(PARQUET_PATH, engine="pyarrow")
@@ -55,9 +53,8 @@ df = (
       .orderBy("timestamp")
 )
 
-# -------------------------
-# 3) Feature Engineering (Zeit + Lags)
-# -------------------------
+# Feature Engineering (Zeit + Lags)
+
 label = "load_mw"
 if label not in df.columns:
     raise ValueError(f"Label-Spalte '{label}' fehlt im Parquet!")
@@ -74,13 +71,12 @@ df_feat = (
     .dropna(subset=[label, "load_lag_24", "load_lag_168"])
 )
 
-# -------------------------
-# 4) Feature Auswahl
-# -------------------------
+
+# Feature Auswahl
 # Detaillierte Temperaturen: temp_c_*
 temp_cols = sorted([c for c in df_feat.columns if c.startswith("temp_c_")])
 
-# Baseline Wetter / Kalender (nur wenn Spalten existieren)
+# Baseline Wetter / Kalender
 optional_base = [
     "solar_mw", "wind_mw",
     "temp_c", "precip_mm", "humidity_pct",
@@ -96,7 +92,7 @@ feature_cols = (
     + ["hour", "month"]
     + ["load_lag_24", "load_lag_168"]
 )
-feature_cols = [c for c in feature_cols if c != label]  # Sicherheit
+feature_cols = [c for c in feature_cols if c != label]
 
 print(f"Using {len(feature_cols)} features.")
 print("First 30 feature cols:", feature_cols[:30])
@@ -104,10 +100,10 @@ print("First 30 feature cols:", feature_cols[:30])
 if len(feature_cols) == 0:
     raise ValueError("Keine Feature-Spalten gefunden (feature_cols ist leer).")
 
-# -------------------------
-# 5) NaN/Inf Cleanup (WICHTIG!)
-# -------------------------
-# 5.1) NaNs in Feature-Spalten rausfiltern
+
+# NaN/Inf Cleanup
+
+# NaNs in Feature-Spalten rausfiltern
 nan_expr = None
 for c in feature_cols:
     if c in df_feat.columns:
@@ -117,28 +113,26 @@ for c in feature_cols:
 if nan_expr is not None:
     df_feat = df_feat.filter(~nan_expr)
 
-# 5.2) +/-Infinity rausfiltern (Spark hat dafür kein isnan)
+# +/-Infinity rausfiltern (Spark hat dafür kein isnan)
 for c in feature_cols:
     if c in df_feat.columns:
         df_feat = df_feat.filter(
             (col(c).isNull()) | ((col(c) != float("inf")) & (col(c) != float("-inf")))
         )
 
-# 5.3) Nulls in Features + Label entfernen
+# Nulls in Features + Label entfernen
 df_feat = df_feat.dropna(subset=feature_cols + [label])
 
-# -------------------------
-# 6) Zeitbasierter Split
-# -------------------------
+
+# Zeitbasierter Split
 train = df_feat.filter(col("timestamp") < lit("2019-01-01 00:00:00"))
 test  = df_feat.filter(col("timestamp") >= lit("2019-01-01 00:00:00"))
 
 print("Train rows:", train.count())
 print("Test rows :", test.count())
 
-# -------------------------
-# 7) ML Pipeline
-# -------------------------
+
+# ML Pipeline
 assembler = VectorAssembler(
     inputCols=feature_cols,
     outputCol="features",
@@ -155,9 +149,8 @@ gbt = GBTRegressor(
 model = Pipeline(stages=[assembler, gbt]).fit(train)
 pred = model.transform(test)
 
-# -------------------------
-# 8) Evaluation
-# -------------------------
+
+# Evaluation
 rmse = RegressionEvaluator(labelCol=label, predictionCol="prediction", metricName="rmse").evaluate(pred)
 mae  = RegressionEvaluator(labelCol=label, predictionCol="prediction", metricName="mae").evaluate(pred)
 
@@ -166,9 +159,7 @@ print("MAE :", mae)
 
 pred.select("timestamp", "load_mw", "prediction").orderBy("timestamp").show(10, truncate=False)
 
-# -------------------------
-# 9) Feature Importances
-# -------------------------
+# Feature Importances
 gbt_model = model.stages[1]
 importances = gbt_model.featureImportances.toArray()
 
